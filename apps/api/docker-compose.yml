@@ -1,0 +1,24 @@
+services:
+  api:
+    build: .
+    environment:
+      - APP_VERSION=v1
+    labels:
+      upstream.enable: "true"
+      upstream.name: "app-api"
+      upstream.port: "9090"
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:9090/healthz"]
+      interval: 3s
+      timeout: 2s
+      retries: 3
+      start_period: 2s
+    deploy:
+      replicas: 2
+    networks:
+      - gateway_net
+
+networks:
+  gateway_net:
+    external: true
+    name: gateway_net

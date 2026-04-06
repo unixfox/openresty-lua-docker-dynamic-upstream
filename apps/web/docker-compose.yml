@@ -1,0 +1,24 @@
+services:
+  web:
+    build: .
+    environment:
+      - APP_VERSION=${APP_VERSION:-v1}
+    labels:
+      upstream.enable: "true"
+      upstream.name: "app-web"
+      upstream.port: "8080"
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:8080/healthz"]
+      interval: 3s
+      timeout: 2s
+      retries: 3
+      start_period: 2s
+    deploy:
+      replicas: 3
+    networks:
+      - gateway_net
+
+networks:
+  gateway_net:
+    external: true
+    name: gateway_net
