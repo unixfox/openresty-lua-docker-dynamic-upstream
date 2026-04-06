@@ -3,11 +3,30 @@ local cjson = require("cjson.safe")
 
 local _M = {}
 
+local docker_host = os.getenv("DOCKER_HOST") or "unix:/var/run/docker.sock"
+
 function _M.request(path)
     local httpc = http.new()
     httpc:set_timeout(5000)
 
-    local ok, err = httpc:connect("unix:/var/run/docker.sock")
+    local ok, err
+
+    if docker_host:sub(1, 7) == "unix://" then
+        ok, err = httpc:connect(docker_host)
+    elseif docker_host:sub(1, 5) == "unix:" then
+        ok, err = httpc:connect(docker_host)
+    elseif docker_host:sub(1, 6) == "tcp://" then
+        local host_port = docker_host:sub(7)
+        local host, port = host_port:match("^(.+):(%d+)$")
+        if not host then
+            host = host_port
+            port = 2375
+        end
+        ok, err = httpc:connect(host, tonumber(port))
+    else
+        ok, err = httpc:connect(docker_host)
+    end
+
     if not ok then
         return nil, "docker connect: " .. (err or "unknown")
     end
@@ -36,7 +55,6 @@ function _M.request(path)
     return data
 end
 
---- List running containers that have upstream.enable=true.
 function _M.list_containers()
     local filters = cjson.encode({
         label  = { "upstream.enable=true" },
